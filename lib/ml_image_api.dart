@@ -30,7 +30,14 @@ class _MlImageApiState extends State<MlImageApi> {
   File? segmentationImage;
   List<MLRemoteLandmark>? landmarkRecognitionList;
   List<MLImageSegmentation>? segmentationList;
-
+  File? backgroundImage;
+  File? superResolutionImage;
+  File? visualSearchImage;
+  File? skewCorrectionImage;
+  MLDocumentSkewCorrectionResult? correctedImageResult;
+  MLImageSuperResolutionResult? superResolutionResult;
+  File? textSuperResolutionImage;
+  MLTextImageSuperResolution? textSuperResolutionResult;
   @override
   void initState() {
     // TODO: implement initState
@@ -315,7 +322,18 @@ class _MlImageApiState extends State<MlImageApi> {
                             .toList(),
                       ]),
                     )
-                  : SizedBox(),
+                  : const SizedBox(),
+              ElevatedButton(
+                  onPressed: () async {
+                    final XFile? image =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      setState(() {
+                        backgroundImage = File(image.path);
+                      });
+                    }
+                  },
+                  child: const Text('Pick Background Image')),
               ElevatedButton(
                   onPressed: () async {
                     final XFile? image =
@@ -334,17 +352,17 @@ class _MlImageApiState extends State<MlImageApi> {
                         analyzerType:
                             MLImageSegmentationAnalyzerSetting.BODY_SEG,
                       );
-
 // Get segmentation result asynchronously.
 //                       MLImageSegmentation segmentation = await analyzer.asyncAnalyseFrame(setting);
 
 // Get segmentation results synchronously.
                       List<MLImageSegmentation> segmentations =
                           await analyzer.analyseFrame(setting);
+
                       setState(() {
                         segmentationList = segmentations;
                         print('SEGMENTATION');
-                        print(segmentationList!.elementAt(0).grayscale!);
+                        print(segmentationList!.first.grayscale!);
                         print('SEGMENTATION');
                       });
 
@@ -352,7 +370,7 @@ class _MlImageApiState extends State<MlImageApi> {
                       await analyzer.stop();
                     }
                   },
-                  child: Text('Image Segmentation')),
+                  child: const Text('Image Segmentation')),
               segmentationImage != null
                   ? SizedBox(
                       width: MediaQuery.of(context).size.width * 0.8,
@@ -369,7 +387,155 @@ class _MlImageApiState extends State<MlImageApi> {
                         // Image.memory(segmentationList![0].original!),
                       ],
                     )
-                  : Container()
+                  : Container(),
+              ElevatedButton(
+                  onPressed: () async {
+                    final XFile? image =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      setState(() {
+                        superResolutionImage = File(image.path);
+                      });
+
+                      MLImageSuperResolutionAnalyzer analyzer =
+                          MLImageSuperResolutionAnalyzer();
+
+// Configure recognition settings.
+                      final setting =
+                          MLImageSuperResolutionAnalyzerSetting.create(
+                              path: superResolutionImage!.path);
+
+// Get recognition result asynchronously.
+                      MLImageSuperResolutionResult result =
+                          await analyzer.asyncAnalyseFrame(setting);
+
+// Get recognition result synchronously.
+//                       List<MLImageSuperResolutionResult> results =
+//                           await analyzer.analyseFrame(setting);
+
+                      setState(() {
+                        superResolutionResult = result;
+                      });
+// After the recognition ends, stop analyzer.
+                      await analyzer.stop();
+                    }
+                  },
+                  child: Text('Image Super Resolution')),
+              superResolutionImage != null
+                  ? SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      height: MediaQuery.of(context).size.height * 0.3,
+                      child: Image.file(superResolutionImage!),
+                    )
+                  : const SizedBox(),
+              superResolutionResult != null
+                  ? Image.memory(superResolutionResult!.bytes!)
+                  : Container(),
+              ElevatedButton(
+                  onPressed: () async {
+                    final XFile? image =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      setState(() {
+                        visualSearchImage = File(image.path);
+                      });
+
+                      // Create a product analyzer.
+                      MLProductVisionSearchAnalyzer analyzer =
+                          MLProductVisionSearchAnalyzer();
+
+// Configure the recognition settings.
+                      final setting =
+                          MLProductVisionSearchAnalyzerSetting.local(
+                        path: visualSearchImage!.path,
+                        productSetId: 'phone',
+                      );
+
+// Get the search results.
+                      List<MlProductVisualSearch?> visionSearch =
+                          await analyzer.searchProduct(setting);
+                      print('VISUAL SEARCH');
+                      print('VISUAL SEARCH');
+                      print(visionSearch.length);
+                      print('VISUAL SEARCH');
+
+// After the recognition ends, stop analyzer.
+                      bool result = await analyzer.stopProductAnalyzer();
+                    }
+                  },
+                  child: const Text('Product Visual Serach')),
+              ElevatedButton(
+                  onPressed: () async {
+                    final XFile? image =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      setState(() {
+                        skewCorrectionImage = File(image.path);
+                      });
+                      MLDocumentSkewCorrectionAnalyzer analyzer =
+                          MLDocumentSkewCorrectionAnalyzer();
+
+                      MLDocumentSkewDetectResult detectionResult =
+                          await analyzer
+                              .analyseFrame(skewCorrectionImage!.path);
+
+                      MLDocumentSkewCorrectionResult corrected =
+                          await analyzer.syncDocumentSkewCorrect();
+                      setState(() {
+                        correctedImageResult = corrected;
+                      });
+                      await analyzer.stop();
+                    }
+                  },
+                  child: const Text('Document Skew Correction')),
+              skewCorrectionImage != null
+                  ? SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      height: MediaQuery.of(context).size.height * 0.3,
+                      child: Image.file(skewCorrectionImage!),
+                    )
+                  : const SizedBox(),
+              correctedImageResult != null
+                  ? Image.memory(correctedImageResult!.bytes!)
+                  : Container(),
+              ElevatedButton(
+                  onPressed: () async {
+                    final XFile? image =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      setState(() {
+                        textSuperResolutionImage = File(image.path);
+                      });
+
+                      // Create a text image super resolution analyzer.
+                      MLTextImageSuperResolutionAnalyzer analyzer =
+                          MLTextImageSuperResolutionAnalyzer();
+
+// Get recognition result asynchronously.
+                      MLTextImageSuperResolution result =
+                          await analyzer.asyncAnalyseFrame("local image path");
+
+                      setState(() {
+                        textSuperResolutionResult = result;
+                      });
+// Get recognition result synchronously.
+//                       List<MLTextImageSuperResolution> list = await analyzer.analyseFrame("local image path");
+
+// After the recognition ends, stop the analyzer.
+                      bool res = await analyzer.stop();
+                    }
+                  },
+                  child: Text('Text Image Super Resolution')),
+              textSuperResolutionImage != null
+                  ? SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      height: MediaQuery.of(context).size.height * 0.3,
+                      child: Image.file(textSuperResolutionImage!),
+                    )
+                  : SizedBox(),
+              textSuperResolutionResult != null
+                  ? Image.memory(textSuperResolutionResult!.bytes!)
+                  : SizedBox()
             ],
           ),
         ),
